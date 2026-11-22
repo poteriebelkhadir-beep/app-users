@@ -76,6 +76,9 @@ jobs:
       - name: Installer les icônes Android depuis resources/ (ImageMagick)
         run: |
           set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
+          CONVERT="convert"
+          command -v convert >/dev/null 2>&1 || CONVERT="magick"
           SRC=resources/icon.png
           FG=resources/icon-foreground.png
           declare -A SIZES=( [mdpi]=48 [hdpi]=72 [xhdpi]=96 [xxhdpi]=144 [xxxhdpi]=192 )
@@ -83,9 +86,9 @@ jobs:
             size=${SIZES[$density]}
             dir="android/app/src/main/res/mipmap-$density"
             mkdir -p "$dir"
-            convert "$SRC" -resize "${size}x${size}" "$dir/ic_launcher.png"
-            convert "$SRC" -resize "${size}x${size}" "$dir/ic_launcher_round.png"
-            convert "$FG" -resize "${size}x${size}" "$dir/ic_launcher_foreground.png"
+            $CONVERT "$SRC" -resize "${size}x${size}" "$dir/ic_launcher.png"
+            $CONVERT "$SRC" -resize "${size}x${size}" "$dir/ic_launcher_round.png"
+            $CONVERT "$FG" -resize "${size}x${size}" "$dir/ic_launcher_foreground.png"
           done
 
       - name: Synchroniser le web et les plugins natifs
