@@ -8,7 +8,7 @@ on:
       - "src/**"
       - "app/**"
       - "public/**"
-      - "capacitor.config.ts"
+      - "capacitor.config.json"
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/android-apk.yml"
@@ -28,6 +28,7 @@ jobs:
 
       - name: Installer pnpm
         uses: pnpm/action-setup@v4
+
       - name: Installer Node
         uses: actions/setup-node@v4
         with:
@@ -53,12 +54,12 @@ jobs:
       - name: Construire le web (client statique)
         run: pnpm build
 
-      - name: Vérifier le dossier de sortie attendu par capacitor.config.ts
+      - name: Vérifier le dossier de sortie attendu par capacitor.config.json
         run: |
-          test -d build/client || { echo "::error::build/client introuvable — ajustez webDir dans capacitor.config.ts si votre build sort ailleurs." ; exit 1; }
+          test -d build/client || { echo "::error::build/client introuvable — ajustez webDir dans capacitor.config.json si votre build sort ailleurs." ; exit 1; }
 
       # android/ n'est volontairement pas versionné : on le régénère à
-      # chaque run à partir de capacitor.config.ts + des plugins installés
+      # chaque run à partir de capacitor.config.json + des plugins installés
       # (@capacitor/geolocation, @capacitor/camera), qui fusionnent eux-mêmes
       # leurs permissions dans le AndroidManifest.xml généré.
       - name: Ajouter la plateforme Android si absente
@@ -73,6 +74,7 @@ jobs:
       # resources/splash.png — c'est le vrai logo HSELY fourni par Adnane.
       - name: Générer les icônes et le splash screen Android
         run: pnpm exec capacitor-assets generate --android
+
       - name: Synchroniser le web et les plugins natifs
         run: pnpm exec cap sync android
 
