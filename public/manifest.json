@@ -1,0 +1,20 @@
+{
+  "name": "HSELY",
+  "short_name": "HSELY",
+  "description": "HSELY \u2014 Contr\u00f4le terrain des douches de s\u00e9curit\u00e9",
+  "start_url": "./",
+  "background_color": "#111111",
+  "theme_color": "#18181B",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

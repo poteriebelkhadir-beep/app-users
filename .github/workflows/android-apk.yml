@@ -1,0 +1,95 @@
+name: APK HSELY
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "app/**"
+      - "public/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/android-apk.yml"
+
+# Un seul run à la fois : évite deux générations Android concurrentes
+# qui se marchent dessus sur le même dossier android/.
+concurrency:
+  group: apk-hsely
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Installer Java 21 (requis par Android Gradle Plugin 8.x)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Le SDK Android est déjà présent sur les runners ubuntu-latest de
+      # GitHub (ANDROID_HOME défini) : pas besoin d'action supplémentaire
+      # pour l'installer, seulement d'accepter les licences et poser la
+      # platform-tools attendue par Capacitor.
+      - name: Accepter les licences Android SDK
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Construire le web (client statique)
+        run: pnpm build
+
+      - name: Vérifier le dossier de sortie attendu par capacitor.config.ts
+        run: |
+          test -d build/client || { echo "::error::build/client introuvable — ajustez webDir dans capacitor.config.ts si votre build sort ailleurs." ; exit 1; }
+
+      # android/ n'est volontairement pas versionné : on le régénère à
+      # chaque run à partir de capacitor.config.ts + des plugins installés
+      # (@capacitor/geolocation, @capacitor/camera), qui fusionnent eux-mêmes
+      # leurs permissions dans le AndroidManifest.xml généré.
+      - name: Ajouter la plateforme Android si absente
+        run: |
+          if [ ! -d android ]; then
+            pnpm exec cap add android
+          fi
+
+      # Génère toutes les résolutions d'icône Android (mipmap-*, icône
+      # adaptative) et le splash screen à partir de resources/icon.png,
+      # resources/icon-foreground.png, resources/icon-background.png et
+      # resources/splash.png — c'est le vrai logo HSELY fourni par Adnane.
+      - name: Générer les icônes et le splash screen Android
+        run: pnpm exec @capacitor/assets generate --android
+
+      - name: Synchroniser le web et les plugins natifs
+        run: pnpm exec cap sync android
+
+      - name: Autoriser l'exécution du wrapper Gradle
+        run: chmod +x android/gradlew
+
+      - name: Compiler l'APK debug
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hsely-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
