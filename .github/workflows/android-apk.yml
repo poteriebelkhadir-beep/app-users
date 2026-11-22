@@ -68,11 +68,28 @@ jobs:
             pnpm exec cap add android
           fi
 
+      # Les plugins ne fusionnent pas toujours leurs permissions dans le
+      # manifest généré : on les injecte nous-mêmes, idempotent (ne les
+      # ajoute pas si déjà présentes).
+      - name: Ajouter les permissions localisation/caméra au manifest Android
+        run: |
+          set -e
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          for PERM in \
+            "android.permission.ACCESS_FINE_LOCATION" \
+            "android.permission.ACCESS_COARSE_LOCATION" \
+            "android.permission.CAMERA"
+          do
+            if ! grep -q "$PERM" "$MANIFEST"; then
+              sed -i "/<\/manifest>/i\\    <uses-permission android:name=\"$PERM\" \/>" "$MANIFEST"
+            fi
+          done
+          grep "uses-permission" "$MANIFEST"
+
       # On évite capacitor-assets (dépend de sharp, qui casse en CI selon
-      # la plateforme d'origine du lockfile). ImageMagick est préinstallé
-      # sur les runners GitHub : on redimensionne nous-mêmes le logo HSELY
-      # (resources/icon.png, resources/icon-foreground.png) vers chaque
-      # résolution mipmap attendue par Android.
+      # la plateforme d'origine du lockfile). ImageMagick redimensionne
+      # nous-mêmes le logo HSELY (resources/icon.png, icon-foreground.png)
+      # vers chaque résolution mipmap attendue par Android.
       - name: Installer les icônes Android depuis resources/ (ImageMagick)
         run: |
           set -e
