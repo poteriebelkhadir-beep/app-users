@@ -68,19 +68,25 @@ jobs:
             pnpm exec cap add android
           fi
 
-      # Le lockfile a été généré sur une autre plateforme (Codespaces/macOS) :
-      # le binaire natif sharp-linux-x64 n'a pas été récupéré par
-      # --frozen-lockfile. On force sa réinstallation pour ce runner avant
-      # d'appeler capacitor-assets, qui dépend de sharp.
-      - name: Réinstaller sharp pour Linux (le lockfile vient d'une autre plateforme)
-        run: pnpm add -D sharp --force
-
-      # Génère toutes les résolutions d'icône Android (mipmap-*, icône
-      # adaptative) et le splash screen à partir de resources/icon.png,
-      # resources/icon-foreground.png, resources/icon-background.png et
-      # resources/splash.png — c'est le vrai logo HSELY fourni par Adnane.
-      - name: Générer les icônes et le splash screen Android
-        run: pnpm exec capacitor-assets generate --android
+      # On évite capacitor-assets (dépend de sharp, qui casse en CI selon
+      # la plateforme d'origine du lockfile). ImageMagick est préinstallé
+      # sur les runners GitHub : on redimensionne nous-mêmes le logo HSELY
+      # (resources/icon.png, resources/icon-foreground.png) vers chaque
+      # résolution mipmap attendue par Android.
+      - name: Installer les icônes Android depuis resources/ (ImageMagick)
+        run: |
+          set -e
+          SRC=resources/icon.png
+          FG=resources/icon-foreground.png
+          declare -A SIZES=( [mdpi]=48 [hdpi]=72 [xhdpi]=96 [xxhdpi]=144 [xxxhdpi]=192 )
+          for density in "${!SIZES[@]}"; do
+            size=${SIZES[$density]}
+            dir="android/app/src/main/res/mipmap-$density"
+            mkdir -p "$dir"
+            convert "$SRC" -resize "${size}x${size}" "$dir/ic_launcher.png"
+            convert "$SRC" -resize "${size}x${size}" "$dir/ic_launcher_round.png"
+            convert "$FG" -resize "${size}x${size}" "$dir/ic_launcher_foreground.png"
+          done
 
       - name: Synchroniser le web et les plugins natifs
         run: pnpm exec cap sync android
