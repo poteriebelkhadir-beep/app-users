@@ -72,7 +72,7 @@ jobs:
       # resources/icon-foreground.png, resources/icon-background.png et
       # resources/splash.png — c'est le vrai logo HSELY fourni par Adnane.
       - name: Générer les icônes et le splash screen Android
-        run: pnpm exec @capacitor/assets generate --android
+        run: pnpm exec @capacitor-assets generate --android
 
       - name: Synchroniser le web et les plugins natifs
         run: pnpm exec cap sync android
