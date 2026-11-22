@@ -68,6 +68,13 @@ jobs:
             pnpm exec cap add android
           fi
 
+      # Le lockfile a été généré sur une autre plateforme (Codespaces/macOS) :
+      # le binaire natif sharp-linux-x64 n'a pas été récupéré par
+      # --frozen-lockfile. On force sa réinstallation pour ce runner avant
+      # d'appeler capacitor-assets, qui dépend de sharp.
+      - name: Réinstaller sharp pour Linux (le lockfile vient d'une autre plateforme)
+        run: pnpm add -D sharp --force
+
       # Génère toutes les résolutions d'icône Android (mipmap-*, icône
       # adaptative) et le splash screen à partir de resources/icon.png,
       # resources/icon-foreground.png, resources/icon-background.png et
