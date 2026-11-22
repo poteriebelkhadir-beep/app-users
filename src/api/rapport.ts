@@ -3,6 +3,12 @@ import type { ErreurApi, PayloadRapport, ResultatEnvoi } from '../types';
 
 const attendre = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
 function classerErreur(error: { code?: string; message?: string; name?: string }): ErreurApi['type'] {
   if (error.code === 'PGRST202' || error.code === '42501' || error.code === 'PGRST301') return 'configuration';
   if (error.code === 'P0001') return error.message?.includes('doublon_recent') ? 'doublon' : 'limite';
@@ -14,32 +20,53 @@ function classerErreur(error: { code?: string; message?: string; name?: string }
   return 'serveur';
 }
 
+/**
+ * Ce projet Supabase n'a pas de fonction Edge : les photos sont uploadées
+ * directement dans le bucket public "photos-controles", puis la seule
+ * fonction RPC ouverte à anon (inserer_rapport) reçoit les URLs obtenues.
+ */
+async function televerserPhotos(secteur: string, images: File[]): Promise<string[]> {
+  const client = getClient();
+  const urls: string[] = [];
+  for (const image of images) {
+    const extension = EXTENSIONS[image.type] ?? 'jpg';
+    const chemin = `${secteur}/${crypto.randomUUID()}.${extension}`;
+    const { error } = await client.storage.from('photos-controles').upload(chemin, image, {
+      contentType: image.type,
+      upsert: false,
+    });
+    if (error) throw error;
+    const { data } = client.storage.from('photos-controles').getPublicUrl(chemin);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
+
 async function envoyer(payload: PayloadRapport): Promise<ResultatEnvoi> {
   try {
-    const formulaire = new FormData();
-    formulaire.set('rapport', JSON.stringify({
-      secteur: payload.secteur,
-      rapporteur: payload.rapporteur,
-      unite: payload.unite,
-      emplacement: payload.emplacement,
-      reponses: payload.reponses,
-      remarques: payload.remarques,
-      operationnelle: payload.operationnelle,
-      localisation: payload.localisation,
-    }));
-    payload.images.forEach((image) => formulaire.append('images', image));
+    const photos = await televerserPhotos(payload.secteur, payload.images);
 
-    const { data, error } = await getClient().functions.invoke<ResultatEnvoi>('submit-report', {
-      body: formulaire,
+    const { data, error } = await getClient().rpc('inserer_rapport', {
+      p_secteur: payload.secteur,
+      p_nom: payload.rapporteur.nom,
+      p_prenom: payload.rapporteur.prenom,
+      p_unite: payload.unite,
+      p_emplacement: payload.emplacement,
+      p_reponses: payload.reponses,
+      p_remarques: payload.remarques,
+      p_photos: photos,
+      p_operationnelle: payload.operationnelle,
+      p_localisation: payload.localisation,
     });
 
     if (error) {
-      return { ok: false, erreur: { type: error.name.includes('Fetch') ? 'reseau' : 'serveur', message: error.message } };
+      return { ok: false, erreur: { type: classerErreur(error), message: error.message } };
     }
-    if (!data || typeof data !== 'object' || !('ok' in data)) {
+    const ligne = Array.isArray(data) ? data[0] : data;
+    if (!ligne || typeof ligne.rapport_id !== 'string' || typeof ligne.recu_le !== 'string') {
       return { ok: false, erreur: { type: 'serveur', message: 'Réponse Supabase invalide' } };
     }
-    return data;
+    return { ok: true, id: ligne.rapport_id, created_at: ligne.recu_le };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Connexion impossible';
     const type: ErreurApi['type'] = message.startsWith('Configuration Supabase manquante')
