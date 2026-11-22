@@ -51,7 +51,13 @@ jobs:
       - name: Installer les dépendances (lockfile figé)
         run: pnpm install --frozen-lockfile
 
+      # Vite fige ces variables dans le bundle statique au moment du build :
+      # elles doivent donc être présentes ici, pas seulement déclarées comme
+      # secrets GitHub (sinon l'app embarquée dans l'APK ne les voit jamais).
       - name: Construire le web (client statique)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: pnpm build
 
       - name: Vérifier le dossier de sortie attendu par capacitor.config.json
