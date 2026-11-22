@@ -29,10 +29,10 @@ jobs:
       - name: Installer pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Installer Node
+      -       - name: Installer Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.22.0
           cache: pnpm
 
       - name: Installer Java 21 (requis par Android Gradle Plugin 8.x)
