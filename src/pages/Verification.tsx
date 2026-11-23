@@ -91,7 +91,7 @@ export default function PageVerification() {
     [lieux, etat.unite],
   );
 
-  if (etat.operationnelle === null || !etat.localisation) return <Navigate to="/" replace />;
+  if (etat.operationnelle === null) return <Navigate to="/" replace />;
   if (!secteur) return <Navigate to="/rapport/secteur" replace />;
   if (!rapporteur) return <Navigate to="/rapport/identification" replace />;
 
