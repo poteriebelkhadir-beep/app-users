@@ -183,7 +183,7 @@ export default function PageVerification() {
       setErreurImages(`Ajoutez au maximum ${IMAGES_MAX} photos.`);
       return;
     }
-    const invalide = selection.find((fichier) => !TYPES_IMAGE.includes(fichier.type) || fichier.size > IMAGE_TAILLE_MAX);
+    const invalide = selection.find((fichier) => !TYPES_IMAGE.includes(fichier.type));
     if (invalide) {
       setErreurImages(!TYPES_IMAGE.includes(invalide.type) ? "Format accepté : JPEG, PNG ou WebP." : "Chaque photo doit faire 5 Mo maximum.");
       return;
@@ -215,13 +215,12 @@ export default function PageVerification() {
     const reponse = etat.reponses[critere.cle];
     return reponse === "NON CONFORME" || reponse === "MANQUE";
   }).length;
-  const pretAEnvoyer = Boolean(etat.unite && etat.emplacement && sansReponse.length === 0 && images.length > 0);
+  const pretAEnvoyer = Boolean(etat.unite && etat.emplacement && sansReponse.length === 0);
   const erreurs: string[] = [];
   if (tentative) {
     if (!etat.unite) erreurs.push("Choisissez une unité.");
     if (!etat.emplacement) erreurs.push("Choisissez un emplacement.");
     if (sansReponse.length) erreurs.push(`Réponse manquante : ${sansReponse.map((c) => c.libelle).join(", ")}.`);
-    if (images.length === 0) erreurs.push("Ajoutez au moins une photo du contrôle.");
   }
   const focaliserAlerte = () => requestAnimationFrame(() => refAlerte.current?.focus());
 
@@ -521,7 +520,6 @@ export default function PageVerification() {
             </label>
             <p className="mt-2 text-[10px] text-acier">JPEG, PNG ou WebP · 5 Mo maximum par photo</p>
             {erreurImages && <p role="alert" className="mt-2 text-[11px] text-argile">{erreurImages}</p>}
-            {tentative && images.length === 0 && <p className="mt-2 text-[11px] text-argile">Ajoutez au moins une photo.</p>}
             {images.length > 0 && (
               <ul className="mt-3 grid grid-cols-3 gap-2">
                 {images.map((image, index) => (
