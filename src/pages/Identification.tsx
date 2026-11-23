@@ -26,7 +26,7 @@ export default function PageIdentification() {
   const refNom = useRef<HTMLInputElement>(null);
   const refPrenom = useRef<HTMLInputElement>(null);
 
-  if (etat.operationnelle === null || !etat.localisation) return <Navigate to="/" replace />;
+  if (etat.operationnelle === null) return <Navigate to="/" replace />;
   if (!etat.secteur) return <Navigate to="/rapport/secteur" replace />;
 
   function valider(e: FormEvent) {
