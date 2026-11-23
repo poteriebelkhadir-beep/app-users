@@ -296,7 +296,7 @@ export default function PageVerification() {
         </div>
 
         <p className="mt-3 text-[11px] text-acier">
-          Douche {etat.operationnelle ? "opérationnelle" : "non opérationnelle"} · GPS {etat.localisation.latitude.toFixed(5)}, {etat.localisation.longitude.toFixed(5)} (±{Math.round(etat.localisation.precision)} m)
+          Douche {etat.operationnelle ? "opérationnelle" : "non opérationnelle"}
         </p>
 
         <form id="rapport-form" onSubmit={envoyer} noValidate className="mt-6 space-y-6">
