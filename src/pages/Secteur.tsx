@@ -10,7 +10,7 @@ export default function PageSecteur() {
   const navigate = useNavigate();
   const { etat, maj, referentiel } = useRapport();
 
-  if (etat.operationnelle === null || !etat.localisation) return <Navigate to="/" replace />;
+  if (etat.operationnelle === null) return <Navigate to="/" replace />;
 
   const secteurs = useMemo(
     () =>
